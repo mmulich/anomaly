@@ -12,7 +12,8 @@ from pika import BasicProperties
 QUEUE = 'anomaly-spotted'
 LATEX = 'latex'
 PRINCEXML = 'princexml'
-XXX_DATA_STRUCT = ('name', 'version', 'build', 'format', 'project', 'origin',)
+XXX_DATA_STRUCT = ('name', 'version', 'build_engine', 'format',
+                   'project', 'origin',)
 XXX_DATA = (
     ('flan', '1.1', None, 'pdf', 'cnx', 'http://cnx.org',),
     ('bio', 'latest', PRINCEXML, 'mobi', 'ccap', 'http://bio.cnx.org',),

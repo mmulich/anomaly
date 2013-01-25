@@ -7,8 +7,8 @@ anomaly exchange.
 import json
 import logging
 import jsonpickle
-from pika.adapters import BlockingConnection
 from pika import BasicProperties
+from pika.adapters import BlockingConnection
 
 from .models import Job
 from .utils import get_routing_key

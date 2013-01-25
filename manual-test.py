@@ -5,8 +5,8 @@ This is a demonstration of the beginning of the story developed
 in the README of the anomaly package.
 """
 import json
-from pika.adapters import BlockingConnection
 from pika import BasicProperties
+from pika.adapters import BlockingConnection
 
 
 QUEUE = 'anomaly-spotted'

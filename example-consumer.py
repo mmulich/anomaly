@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """\
-
+An example of a job worker that catches all queued messages and prints
+the contents to standard out.
 """
 import logging
 import jsonpickle

@@ -27,6 +27,7 @@ def consumer(consuming_channel, method, header, body):
 
     # Create the new Job message object.
     job = Job(id, data)
+    job.stamp()
 
     # Submit the new message to the topic exchange.
     connection = BlockingConnection()

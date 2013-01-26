@@ -4,6 +4,10 @@ Contains the job worker that catches all processed data message and ensures
 that each request is worked on even if it hasn't been worked on yet.
 
 """
+import argparse
+import logging
+import jsonpickle
+from logging.config import fileConfig
 import jsonpickle
 from pika.adapters import BlockingConnection
 
@@ -11,6 +15,8 @@ from pika.adapters import BlockingConnection
 EXCHANGE = 'anomaly-analysis'
 QUEUE = 'anomaly-catchall'
 BINDING_KEY = '#'
+
+logger = logging.getLogger('anomaly')
 
 
 def consumer(channel, method, header, body):
@@ -23,9 +29,9 @@ def consumer(channel, method, header, body):
         raise Exception("unrecognized message content-type: "
                         "{0}".format(header.content_type))
     job = jsonpickle.decode(body)
-    print("Message: {0} - {1}"
-          "\n\t{2!r}"
-          "\n\t{3!r}".format(job.id, job.timestamp, job, job.data))
+    logger.debug("Received message: {0} - {1}"
+                 "\n\t{2!r}"
+                 "\n\t{3!r}".format(job.id, job.timestamp, job, job.data))
 
     # Update status to checked if the job is not currently being
     #   worked on.
@@ -39,13 +45,20 @@ def consumer(channel, method, header, body):
     ##session = ???
     ##job.save(session)
 
-    print("\t{0}".format(job.timestamp))
-
     channel.basic_ack(method.delivery_tag)
 
 
 def main(argv=None):
     """Main logic hit by the commandline invocation."""
+    parser = argparse.ArgumentParser(__doc__)
+    parser.add_argument('-c', '--config',
+                        help="path to the configuration file")
+    args = parser.parse_args(argv)
+    if args.config is not None:
+        fileConfig(args.config)
+        logger.info("Logging initialized")
+
+    # Queue initialization
     connection = BlockingConnection()
     channel = connection.channel()
     # Declare the exchange and an unnamed queue.

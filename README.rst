@@ -57,3 +57,19 @@ Queues
   be handled almost immediately. The idea here is to make it so that
   the worker doesn't have to make a sql connection to update the jobs
   status.
+
+Installation
+------------
+
+Postgresql DB
+~~~~~~~~~~~~~
+
+Create a postgresql role::
+
+    createuser -P anomaly
+
+When prompted for the password, use ``anomaly``.
+
+Create the database with the new role assigned to it::
+
+    createdb -O anomaly anomaly

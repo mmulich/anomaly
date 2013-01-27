@@ -26,3 +26,7 @@ class Job(object):
             self.timestamp = timestamp
         else:
             self.timestamp = time.time()
+
+    def __repr__(self):
+        return "<{0} id:{1}, timestamp:{2}>".format(self.__class__.__name__,
+                                                    self.id, self.timestamp)

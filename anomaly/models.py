@@ -5,6 +5,7 @@ between the queues as message data. They are rebuilt on the other end.
 """
 import time
 from .persistent import create_database_session
+import datetime
 
 class Job(object):
     """Used to store data about the submitted job and obtain and post related
@@ -29,7 +30,10 @@ class Job(object):
         if timestamp is not None:
             self.timestamp = timestamp
         else:
-            self.timestamp = time.time()
+            dt = datetime.datetime.utcnow()
+            timestamp_seconds = dt.microsecond * 0.000001
+            # Python doesn't add seconds to the stamp.
+            self.timestamp = time.mktime(dt.timetuple()) + timestamp_seconds
 
     def update_status(self, status):
         """Inserts (or updates) the status object into

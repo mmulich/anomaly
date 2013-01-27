@@ -9,11 +9,14 @@ from ConfigParser import ConfigParser
 from logging.config import fileConfig
 
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import backref, relationship, sessionmaker
 from sqlalchemy import (
     Column,
+    ForeignKey,
+    Float,
     Integer,
     String,
+    Text,
     )
 from sqlalchemy.ext.declarative import declarative_base
 
@@ -26,10 +29,16 @@ Base = declarative_base()
 
 
 
-def create_database_session(db_uri):
+def create_database_session(db_uri=None):
     """Creates a session for use with the database."""
     global engine
     if engine is None:
+        if db_uri is None:
+            # FIXME This is bad, but without a main application object
+            #       and/or registry, there isn't a clean way around it
+            #       at this time.
+            raise RuntimeError("A database URI is required to "
+                               "initialize the database.")
         engine = create_engine(db_uri)
     Session.configure(bind=engine)
     return Session()
@@ -44,6 +53,25 @@ class Job(Base):
     def __init__(self, data, type=''):
         self.data = data
         self.type = type
+
+
+class Status(Base):
+    __tablename__ = 'statuses'
+    id = Column(Integer, primary_key=True)
+    job_id = Column(Integer, ForeignKey('jobs.id'))
+    name = Column(String)
+    timestamp = Column(Float)
+    message = Column(Text)
+    job = relationship('Job', backref=backref('statuses', order_by=timestamp))
+
+    def __init__(self, name, timestamp, message=''):
+        self.name = name
+        self.timestamp = timestamp
+        self.message = message
+
+    def assign_to_job(self, id):
+        self.job_id = id
+
 
 # ######################### #
 #   Commandline Interface   #

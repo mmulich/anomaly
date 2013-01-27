@@ -6,10 +6,14 @@ that each request is worked on even if it hasn't been worked on yet.
 """
 import argparse
 import logging
-import jsonpickle
 from logging.config import fileConfig
+from ConfigParser import ConfigParser
+
 import jsonpickle
+from pika import BasicProperties
 from pika.adapters import BlockingConnection
+
+from .persistent import create_database_session, Status
 
 
 EXCHANGE = 'anomaly-analysis'
@@ -35,15 +39,16 @@ def consumer(channel, method, header, body):
 
     # Update status to checked if the job is not currently being
     #   worked on.
-    ##status = Checked(job, OK)
-    ##job.update_status(status)
-
-    # Stamp the job and republish it back to this queue.
     job.stamp()
+    status = Status('Checked', job.timestamp)
+    job.update_status(status)
+    logger.info("Status update to 'Checked' on {0}.".format(job))
 
-    # Update the job in the database.
-    ##session = ???
-    ##job.save(session)
+    # Republish it back to this queue.
+    message = jsonpickle.encode(job)
+    properties = BasicProperties(content_type="application/json")
+    channel.basic_publish(exchange='', routing_key=QUEUE, body=message,
+                          properties=properties)
 
     channel.basic_ack(method.delivery_tag)
 
@@ -51,12 +56,16 @@ def consumer(channel, method, header, body):
 def main(argv=None):
     """Main logic hit by the commandline invocation."""
     parser = argparse.ArgumentParser(__doc__)
-    parser.add_argument('-c', '--config',
-                        help="path to the configuration file")
+    parser.add_argument('config', help="path to the configuration file")
     args = parser.parse_args(argv)
     if args.config is not None:
         fileConfig(args.config)
         logger.info("Logging initialized")
+
+    config = ConfigParser()
+    config.read(args.config)
+    # Grab the database uri setting from the config.
+    session = create_database_session(config.get('anomaly', 'database-uri'))
 
     # Queue initialization
     connection = BlockingConnection()

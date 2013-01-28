@@ -6,6 +6,7 @@ that each request is worked on even if it hasn't been worked on yet.
 """
 import argparse
 import logging
+import time
 from logging.config import fileConfig
 from ConfigParser import ConfigParser
 
@@ -14,6 +15,7 @@ from pika import BasicProperties
 from pika.adapters import BlockingConnection
 
 from .persistent import create_database_session, Status
+from .utils import check_timestamp, get_timestamp_offset
 
 
 EXCHANGE = 'anomaly-analysis'
@@ -36,6 +38,25 @@ def consumer(channel, method, header, body):
     logger.debug("Received message: {0} - {1}"
                  "\n\t{2!r}"
                  "\n\t{3!r}".format(job.id, job.timestamp, job, job.data))
+
+    # XXX Temporary assignment of the time interval to 30 seconds.
+    interval = 30
+
+    # Pull the last status to make a decision about the next action.
+    latest_status = job.get_latest_status()
+    if job.is_complete:
+        # This is great news. Nothing more needs to happen."
+        logger.info("Job 'Complete': {0}".format(job))
+    elif latest_status is not None \
+         and not check_timestamp(latest_status.timestamp, interval):
+        # Wait roughly the amount of time between the now and the
+        #   remaining interval amount. Then call this function again.
+        wait_time = get_timestamp_offset(latest_status.timestamp, interval)
+        logger.info("Waiting {0} seconds for job: {1}".format(wait_time,
+                                                              job))
+        time.sleep(wait_time)
+        consumer(channel, method, header, body)
+        return
 
     # Update status to checked if the job is not currently being
     #   worked on.
@@ -65,7 +86,7 @@ def main(argv=None):
     config = ConfigParser()
     config.read(args.config)
     # Grab the database uri setting from the config.
-    session = create_database_session(config.get('anomaly', 'database-uri'))
+    Session = create_database_session(config.get('anomaly', 'database-uri'))
 
     # Queue initialization
     connection = BlockingConnection()

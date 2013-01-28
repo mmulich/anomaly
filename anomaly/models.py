@@ -4,8 +4,10 @@ Contains models used throughout the anomaly codebase. These models are passed
 between the queues as message data. They are rebuilt on the other end.
 """
 import time
-from .persistent import create_database_session
 import datetime
+
+from .persistent import create_database_session, Job as PersistentJob, Status
+
 
 class Job(object):
     """Used to store data about the submitted job and obtain and post related
@@ -47,3 +49,27 @@ class Job(object):
         session.commit()
         session.close()
 
+    def get_latest_status(self):
+        """Returns the latest status object"""
+        Session = create_database_session()
+        session = Session()
+        status = session.query(Status).\
+            filter(PersistentJob.id == self.id).\
+            order_by(Status.timestamp.desc()).\
+            first()
+        session.close()
+        return status
+
+    @property
+    def is_complete(self):
+        Session = create_database_session()
+        session = Session()
+        completed_statuses = session.query(Status).\
+            filter(PersistentJob.id == self.id).\
+            filter(Status.name == 'Complete').\
+            all()
+        state = False
+        if len(completed_statuses) > 0:
+            state = True
+        session.close()
+        return state

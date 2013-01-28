@@ -40,7 +40,10 @@ class Job(object):
         the persistent storage.
 
         """
-        session = create_database_session()
+        Session = create_database_session()
+        session = Session()
         status.assign_to_job(self.id)
         session.add(status)
         session.commit()
+        session.close()
+

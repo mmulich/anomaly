@@ -79,7 +79,7 @@ def main(argv=None):
     config = ConfigParser()
     config.read(args.config)
     # Grab the database uri setting from the config.
-    session = create_database_session(config.get('anomaly', 'database-uri'))
+    Session = create_database_session(config.get('anomaly', 'database-uri'))
 
     # Queue initialization
     connection = BlockingConnection()
@@ -87,7 +87,7 @@ def main(argv=None):
     channel.queue_declare(queue=QUEUE, durable=True, exclusive=False)
 
     # Setup up our consumer callback
-    consumer = Consumer(session)
+    consumer = Consumer(Session())
     channel.basic_consume(consumer, queue=QUEUE)
 
     try:

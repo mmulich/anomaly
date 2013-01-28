@@ -24,7 +24,7 @@ from sqlalchemy.ext.declarative import declarative_base
 logger = logging.getLogger('anomaly')
 
 engine = None
-Session = sessionmaker()
+Session = None
 Base = declarative_base()
 
 
@@ -40,8 +40,10 @@ def create_database_session(db_uri=None):
             raise RuntimeError("A database URI is required to "
                                "initialize the database.")
         engine = create_engine(db_uri)
-    Session.configure(bind=engine)
-    return Session()
+    global Session
+    if Session is None:
+        Session = sessionmaker(bind=engine)
+    return Session
 
 
 class Job(Base):
@@ -104,9 +106,9 @@ def main(argv=None):
     config = ConfigParser()
     config.read(args.config)
     # Grab the database uri setting from the config.
-    session = create_database_session(config.get('anomaly', 'database-uri'))
+    Session = create_database_session(config.get('anomaly', 'database-uri'))
 
-    commands[args.command](session)
+    commands[args.command](Session())
 
 if __name__ == '__main__':
     main()
